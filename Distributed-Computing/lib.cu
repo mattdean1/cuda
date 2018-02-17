@@ -15,7 +15,7 @@ void sequential_scan(int* output, int* input, int length)
 	}
 }
 
-__global__ void naive_scan1(int *g_odata, int *g_idata, int n)
+__global__ void naive_scan(int *g_odata, int *g_idata, int n)
 {
 	__shared__ int temp[5]; // allocated on invocation
 	int k = threadIdx.x;
@@ -34,7 +34,7 @@ __global__ void naive_scan1(int *g_odata, int *g_idata, int n)
 	g_odata[k] = temp[k]; // write output
 }
 
-__global__ void naive_scan(int *g_odata, int *g_idata, int n)
+__global__ void buffered_scan(int *g_odata, int *g_idata, int n)
 {
 	extern __shared__ int temp[]; // allocated on invocation
 
