@@ -8,15 +8,18 @@
 
 void checkCudaError(char *message, cudaError_t err);
 void printArray(int* arr, int length, char* prefix);
+bool isPowerOfTwo(int x);
 int nextPowerOfTwo(int x);
+void addConstant(int *output, int length, int constant);
 void scanSmallArray(int *output, int *input, int length);
 void scanLargeArray(int *output, int *input, int length);
 void scanSmallArbitraryArray(int *output, int *input, int length);
+void scanLargeArbitraryArray(int *output, int *input, int length);
 
 int main()
 {
 	// allocate arrays
-    const int N = 6;
+    const int N = 2046;
 
 	int in[N];
 	int out[N] = { 0 };
@@ -27,7 +30,7 @@ int main()
 		out[i] = 0;
 	}
 
-	scanSmallArbitraryArray(out, in, N);
+	scanLargeArbitraryArray(out, in, N);
 
 	printArray(in, N, "input array");
 	printArray(out, N, "scanned array");
@@ -141,6 +144,49 @@ void scanLargeArray(int *output, int *input, int length) {
 	cudaFree(d_sums);
 }
 
+void scanLargeArbitraryArray(int *output, int *input, int length) {
+	bool isp2 = isPowerOfTwo(length);
+	if (isp2) {
+		scanLargeArray(output, input, length);
+	}
+	else {
+		int prevPower = nextPowerOfTwo(length) / 2;
+		int remaining = length - prevPower;
+
+		scanLargeArray(output, input, prevPower);
+		int last = output[prevPower - 1];
+
+		scanSmallArbitraryArray(&(output[prevPower]), &(input[prevPower]), remaining);
+		addConstant(&(output[prevPower]), remaining, last + input[prevPower - 1]);
+	}
+}
+
+
+void addConstant(int *output, int length, int constant) {
+	int *d_out, *d_add;
+	int arraySize = length * sizeof(int);
+
+	cudaMalloc((void **)&d_out, arraySize);
+	cudaMalloc((void **)&d_add, sizeof(int));
+
+	cudaMemcpy(d_out, output, arraySize, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_add, &constant, sizeof(int), cudaMemcpyHostToDevice);
+
+	add << <1, length >> >(d_out, d_add, length);
+	checkCudaError(
+		"kernel launch",
+		cudaGetLastError()
+	);
+	checkCudaError(
+		"kernel execution",
+		cudaDeviceSynchronize()
+	);
+
+	cudaMemcpy(output, d_out, arraySize, cudaMemcpyDeviceToHost);
+
+	cudaFree(d_out);
+}
+
 void checkCudaError(char *message, cudaError_t err) {
 	if (err != cudaSuccess) {
 		fprintf(stderr, message);
@@ -158,6 +204,10 @@ void printArray(int* arr, int length, char* prefix) {
 		printf(" %i", arr[i]);
 	}
 	printf(" }\n");
+}
+
+bool isPowerOfTwo(int x) {
+	return x && !(x & (x - 1));
 }
 
 int nextPowerOfTwo(int x) {

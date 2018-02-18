@@ -75,7 +75,7 @@ __global__ void prescan_arbitrary(int *g_odata, int *g_idata, int n, int powerOf
 	extern __shared__ int temp[];// allocated on invocation
 	int threadID = threadIdx.x;
 
-	if (threadID <= n) {
+	if (threadID < n) {
 		temp[2 * threadID] = g_idata[2 * threadID]; // load input into shared memory
 		temp[2 * threadID + 1] = g_idata[2 * threadID + 1];
 	}
@@ -115,7 +115,7 @@ __global__ void prescan_arbitrary(int *g_odata, int *g_idata, int n, int powerOf
 	}
 	__syncthreads();
 
-	if (threadID <= n) {
+	if (threadID < n) {
 		g_odata[2 * threadID] = temp[2 * threadID]; // write results to device memory
 		g_odata[2 * threadID + 1] = temp[2 * threadID + 1];
 	}
