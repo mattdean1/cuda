@@ -1,12 +1,13 @@
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
 #include "lib.cuh"
 
-void checkCudaError(char *message, cudaError_t err);
+
 void printArray(int* arr, int length, char* prefix);
 bool isPowerOfTwo(int x);
 int nextPowerOfTwo(int x);
@@ -16,17 +17,30 @@ void scanLargeArray(int *output, int *input, int length);
 void scanSmallArbitraryArray(int *output, int *input, int length);
 void scanLargeArbitraryArray(int *output, int *input, int length);
 
+void _checkCudaError(char *message, cudaError_t err, const char *caller) {
+	if (err != cudaSuccess) {
+		fprintf(stderr, "Error in: %s\n", caller);
+		fprintf(stderr, message);
+		fprintf(stderr, ": %s\n", cudaGetErrorString(err));
+		exit(0);
+	}
+}
+
+#define checkCudaError(o, l) _checkCudaError(o, l, __func__)
+
+int THREADS_PER_BLOCK = 512;
+
 int main()
 {
 	// allocate arrays
-    const int N = 2046;
+    const int N = 10000;
 
 	int in[N];
 	int out[N] = { 0 };
 
 	// populate arrays
 	for (int i = 0; i < N; i++) {
-		in[i] = i + 1;
+		in[i] = rand()%10;
 		out[i] = 0;
 	}
 
@@ -34,6 +48,8 @@ int main()
 
 	printArray(in, N, "input array");
 	printArray(out, N, "scanned array");
+
+
 
     return 0;
 }
@@ -89,9 +105,8 @@ void scanSmallArbitraryArray(int *output, int *input, int length) {
 }
 
 void scanLargeArray(int *output, int *input, int length) {
-	const int numElementsPerBlock = 512;
+	const int numElementsPerBlock = THREADS_PER_BLOCK * 2;
 	const int blocks = length / numElementsPerBlock;
-	const int threadsPerBlock = numElementsPerBlock / 2;
 	const int arraySize = length * sizeof(int);
 
 	int *d_out, *d_in, *d_sums, *d_sums2, *d_incr;
@@ -106,34 +121,35 @@ void scanLargeArray(int *output, int *input, int length) {
 	cudaMemcpy(d_in, input, arraySize, cudaMemcpyHostToDevice);
 
 
-	prescan_large<<<blocks, threadsPerBlock, arraySize>>>(d_out, d_in, numElementsPerBlock, d_sums);
+	prescan_large<<<blocks, THREADS_PER_BLOCK, arraySize>>>(d_out, d_in, numElementsPerBlock, d_sums);
 	checkCudaError(
-		"kernel launch",
+		"prescan_large kernel launch",
 		cudaGetLastError()
 	);
 	checkCudaError(
-		"kernel execution",
+		"prescan_large kernel execution",
 		cudaDeviceSynchronize()
 	);
 
-	prescan<<<1, blocks / 2, blocks * sizeof(int)>>>(d_incr, d_sums, blocks);
+	int powerOfTwo = nextPowerOfTwo(blocks);
+	prescan_arbitrary<<<1, (blocks + 1) / 2, powerOfTwo * sizeof(int)>>>(d_incr, d_sums, blocks, powerOfTwo);
 	checkCudaError(
-		"kernel launch",
+		"prescan kernel launch",
 		cudaGetLastError()
 	);
 	checkCudaError(
-		"kernel execution",
+		"prescan kernel execution",
 		cudaDeviceSynchronize()
 	);
 
 
 	add<<<blocks, numElementsPerBlock>>>(d_out, d_incr, numElementsPerBlock);
 	checkCudaError(
-		"kernel launch",
+		"add kernel launch",
 		cudaGetLastError()
 	);
 	checkCudaError(
-		"kernel execution",
+		"add kernel execution",
 		cudaDeviceSynchronize()
 	);
 
@@ -145,22 +161,20 @@ void scanLargeArray(int *output, int *input, int length) {
 }
 
 void scanLargeArbitraryArray(int *output, int *input, int length) {
-	bool isp2 = isPowerOfTwo(length);
-	if (isp2) {
+	int remainder = length % (THREADS_PER_BLOCK * 2);
+	if (remainder == 0) {
 		scanLargeArray(output, input, length);
 	}
 	else {
-		int prevPower = nextPowerOfTwo(length) / 2;
-		int remaining = length - prevPower;
+		int lengthMultiple = length - remainder;
 
-		scanLargeArray(output, input, prevPower);
-		int last = output[prevPower - 1];
+		scanLargeArray(output, input, lengthMultiple);
+		int lastElem = output[lengthMultiple - 1];
 
-		scanSmallArbitraryArray(&(output[prevPower]), &(input[prevPower]), remaining);
-		addConstant(&(output[prevPower]), remaining, last + input[prevPower - 1]);
+		scanSmallArbitraryArray(&(output[lengthMultiple]), &(input[lengthMultiple]), remainder);
+		addConstant(&(output[lengthMultiple]), remainder, lastElem + input[lengthMultiple - 1]);
 	}
 }
-
 
 void addConstant(int *output, int length, int constant) {
 	int *d_out, *d_add;
@@ -187,13 +201,7 @@ void addConstant(int *output, int length, int constant) {
 	cudaFree(d_out);
 }
 
-void checkCudaError(char *message, cudaError_t err) {
-	if (err != cudaSuccess) {
-		fprintf(stderr, message);
-		fprintf(stderr, ": %s\n", cudaGetErrorString(err));
-		exit(0);
-	}
-}
+
 
 void printArray(int* arr, int length, char* prefix) {
 	char string[50] = "";
