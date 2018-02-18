@@ -19,13 +19,14 @@ int main()
 	cudaMallocManaged(&in, N * sizeof(int));
 	cudaMallocManaged(&out, N * sizeof(int));
 
+	// populate arrays
 	for (int i = 0; i < N; i++) {
 		in[i] = i + 1;
 		out[i] = 0;
 	}
 
 	// launch the kernel
-	prescan<<<1, N, 2*N>>>(out, in, N);
+	prescan<<<1, N, N>>>(out, in, N);
 
 	checkCudaError(
 		// check that the kernel was launched ok
