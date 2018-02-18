@@ -6,13 +6,13 @@
 
 #include "lib.cuh"
 
-void checkCudaError(cudaError_t err);
+void checkCudaError(char *message, cudaError_t err);
 void printArray(int* arr, int length, char* prefix);
 
 int main()
 {
 	// allocate arrays
-    const int N = 8;
+    int N = 128;
     int *in, *out;
 
 	// managed memory can be accessed by host and gpu - it is slightly slower than cudaMalloc + cudaMemcpy
@@ -25,15 +25,14 @@ int main()
 		out[i] = 0;
 	}
 
-	// launch the kernel
-	prescan<<<1, N, N>>>(out, in, N);
+	prescan<<<1, N/2, N*sizeof(int)>>>(out, in, N);
 
 	checkCudaError(
-		// check that the kernel was launched ok
+		"kernel launch",
 		cudaGetLastError()
 	);
 	checkCudaError(
-		// check the kernel executed ok
+		"kernel execution",
 		cudaDeviceSynchronize()
 	);
 
@@ -46,9 +45,10 @@ int main()
     return 0;
 }
 
-void checkCudaError(cudaError_t err) {
+void checkCudaError(char *message, cudaError_t err) {
 	if (err != cudaSuccess) {
-		fprintf(stderr, "cuda error: %s\n", cudaGetErrorString(err));
+		fprintf(stderr, message);
+		fprintf(stderr, ": %s\n", cudaGetErrorString(err));
 		exit(0);
 	}
 }

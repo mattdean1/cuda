@@ -69,3 +69,46 @@ __global__ void prescan(int *g_odata, int *g_idata, int n)
 	g_odata[2 * threadID] = temp[2 * threadID]; // write results to device memory
 	g_odata[2 * threadID + 1] = temp[2 * threadID + 1];
 }
+
+__global__ void prescan_large(int *g_odata, int *g_idata, int n) {
+	int blockID = blockIdx.x;
+	int threadID = threadIdx.x;
+	int globalThreadID = blockID * blockDim.x + threadID;
+	int blockOffset = blockID * blockDim.x;
+	
+	extern __shared__ int temp[];// allocated on invocation
+
+	int offset = 1;
+	temp[2 * threadID] = g_idata[blockOffset + 2 * threadID]; // load input into shared memory
+	temp[2 * threadID + 1] = g_idata[blockOffset + 2 * threadID + 1];
+	for (int d = n >> 1; d > 0; d >>= 1) // build sum in place up the tree
+	{
+		__syncthreads();
+		if (threadID < d)
+		{
+			int ai = offset * (2 * threadID + 1) - 1;
+			int bi = offset * (2 * threadID + 2) - 1;
+			temp[bi] += temp[ai];
+		}
+		offset *= 2;
+	}
+
+	if (threadID == 0) { temp[n - 1] = 0; } // clear the last element
+	
+	for (int d = 1; d < n; d *= 2) // traverse down tree & build scan
+	{
+		offset >>= 1;
+		__syncthreads();
+		if (threadID < d)
+		{
+			int ai = offset * (2 * threadID + 1) - 1;
+			int bi = offset * (2 * threadID + 2) - 1;
+			int t = temp[ai];
+			temp[ai] = temp[bi];
+			temp[bi] += t;
+		}
+	}
+	__syncthreads();
+	g_odata[blockOffset + 2 * threadID] = temp[2 * threadID]; // write results to device memory
+	g_odata[blockOffset + 2 * threadID + 1] = temp[2 * threadID + 1];
+}
