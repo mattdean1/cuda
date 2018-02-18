@@ -8,13 +8,15 @@
 
 void checkCudaError(char *message, cudaError_t err);
 void printArray(int* arr, int length, char* prefix);
+int nextPowerOfTwo(int x);
 void scanSmallArray(int *output, int *input, int length);
 void scanLargeArray(int *output, int *input, int length);
+void scanSmallArbitraryArray(int *output, int *input, int length);
 
 int main()
 {
 	// allocate arrays
-    const int N = 2048;
+    const int N = 6;
 
 	int in[N];
 	int out[N] = { 0 };
@@ -25,7 +27,7 @@ int main()
 		out[i] = 0;
 	}
 
-	scanLargeArray(out, in, N);
+	scanSmallArbitraryArray(out, in, N);
 
 	printArray(in, N, "input array");
 	printArray(out, N, "scanned array");
@@ -42,6 +44,32 @@ void scanSmallArray(int *output, int *input, int length) {
 	cudaMemcpy(d_in, input, arraySize, cudaMemcpyHostToDevice);
 
 	prescan<<<1, length / 2, arraySize>>>(d_out, d_in, length);
+	checkCudaError(
+		"kernel launch",
+		cudaGetLastError()
+	);
+	checkCudaError(
+		"kernel execution",
+		cudaDeviceSynchronize()
+	);
+
+	cudaMemcpy(output, d_out, arraySize, cudaMemcpyDeviceToHost);
+
+	cudaFree(d_out);
+	cudaFree(d_in);
+}
+
+void scanSmallArbitraryArray(int *output, int *input, int length) {
+	const int arraySize = length * sizeof(int);
+	int *d_out, *d_in;
+	cudaMalloc((void **)&d_out, arraySize);
+	cudaMalloc((void **)&d_in, arraySize);
+
+	cudaMemcpy(d_in, input, arraySize, cudaMemcpyHostToDevice);
+
+	int powerOfTwo = nextPowerOfTwo(length);
+
+	prescan_arbitrary<<<1, length / 2, powerOfTwo * sizeof(int)>>>(d_out, d_in, length, powerOfTwo);
 	checkCudaError(
 		"kernel launch",
 		cudaGetLastError()
@@ -130,4 +158,12 @@ void printArray(int* arr, int length, char* prefix) {
 		printf(" %i", arr[i]);
 	}
 	printf(" }\n");
+}
+
+int nextPowerOfTwo(int x) {
+	int power = 1;
+	while (power < x) {
+		power *= 2;
+	}
+	return power;
 }
