@@ -1,16 +1,18 @@
 
 #include <stdio.h>
+#include <string.h>
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
 #include "lib.cuh"
 
 void checkCudaError(cudaError_t err);
+void printArray(int* arr, int length, char* prefix);
 
 int main()
 {
 	// allocate arrays
-    const int N = 5;
+    const int N = 8;
     int *in, *out;
 
 	// managed memory can be accessed by host and gpu - it is slightly slower than cudaMalloc + cudaMemcpy
@@ -23,7 +25,7 @@ int main()
 	}
 
 	// launch the kernel
-	naive_scan<<<1, N, N>>>(out, in, N);
+	prescan<<<1, N, 2*N>>>(out, in, N);
 
 	checkCudaError(
 		// check that the kernel was launched ok
@@ -34,7 +36,9 @@ int main()
 		cudaDeviceSynchronize()
 	);
 
-    printf("scan{1,2,3,4,5} = {%d,%d,%d,%d,%d}\n", out[0], out[1], out[2], out[3], out[4]);
+
+	printArray(in, N, "input array");
+	printArray(out, N, "scanned array");
 
 	cudaFree(in);
 	cudaFree(out);
@@ -46,4 +50,15 @@ void checkCudaError(cudaError_t err) {
 		fprintf(stderr, "cuda error: %s\n", cudaGetErrorString(err));
 		exit(0);
 	}
+}
+
+void printArray(int* arr, int length, char* prefix) {
+	char string[50] = "";
+	strcat(strcat(string, prefix), ": {");
+
+	printf(string);
+	for (int i = 0; i < length; i++) {
+		printf(" %i", arr[i]);
+	}
+	printf(" }\n");
 }

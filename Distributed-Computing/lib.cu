@@ -2,7 +2,6 @@
 #include "device_launch_parameters.h"
 #include <device_functions.h>
 
-
 #include "lib.cuh"
 
 
@@ -17,7 +16,7 @@ void sequential_scan(int* output, int* input, int length)
 
 __global__ void naive_scan(int *g_odata, int *g_idata, int n)
 {
-	__shared__ int temp[5]; // allocated on invocation
+	extern __shared__ int temp[]; // allocated on invocation
 	int k = threadIdx.x;
 	// load input into shared memory.
 	// This is exclusive scan, so shift right by one and set first elt to 0
@@ -32,33 +31,6 @@ __global__ void naive_scan(int *g_odata, int *g_idata, int n)
 		__syncthreads();
 	}
 	g_odata[k] = temp[k]; // write output
-}
-
-__global__ void buffered_scan(int *g_odata, int *g_idata, int n)
-{
-	extern __shared__ int temp[]; // allocated on invocation
-
-	int threadID = threadIdx.x;
-	int pout = 0, pin = 1;
-
-	// load input into shared memory.
-	// This is exclusive scan, so shift right by one and set first elt to 0
-	temp[pout*n + threadID] = (threadID > 0) ? g_idata[threadID - 1] : 0;
-	__syncthreads();
-
-	for (int offset = 1; offset < n; offset *= 2)
-	{
-		pout = 1 - pout; // swap double buffer indices
-		pin = 1 - pout;
-
-		if (threadID >= offset)
-			temp[pout*n + threadID] += temp[pin*n + threadID - offset];
-		else
-			temp[pout*n + threadID] = temp[pin*n + threadID];
-
-		 __syncthreads();
-	}
-	g_odata[threadID] = temp[pout*n + threadID]; // write output
 }
 
 __global__ void prescan(int *g_odata, int *g_idata, int n)
