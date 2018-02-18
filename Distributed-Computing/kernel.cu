@@ -8,16 +8,16 @@
 
 void checkCudaError(char *message, cudaError_t err);
 void printArray(int* arr, int length, char* prefix);
+void scanSmallArray(int *output, int *input, int length);
+void scanLargeArray(int *output, int *input, int length);
 
 int main()
 {
 	// allocate arrays
-    int N = 128;
-    int *in, *out;
+    const int N = 2048;
 
-	// managed memory can be accessed by host and gpu - it is slightly slower than cudaMalloc + cudaMemcpy
-	cudaMallocManaged(&in, N * sizeof(int));
-	cudaMallocManaged(&out, N * sizeof(int));
+	int in[N];
+	int out[N] = { 0 };
 
 	// populate arrays
 	for (int i = 0; i < N; i++) {
@@ -25,8 +25,67 @@ int main()
 		out[i] = 0;
 	}
 
-	prescan<<<1, N/2, N*sizeof(int)>>>(out, in, N);
+	scanLargeArray(out, in, N);
 
+	printArray(in, N, "input array");
+	printArray(out, N, "scanned array");
+
+    return 0;
+}
+
+void scanSmallArray(int *output, int *input, int length) {
+	const int arraySize = length * sizeof(int);
+	int *d_out, *d_in;
+	cudaMalloc((void **)&d_out, arraySize);
+	cudaMalloc((void **)&d_in, arraySize);
+
+	cudaMemcpy(d_in, input, arraySize, cudaMemcpyHostToDevice);
+
+	prescan<<<1, length / 2, arraySize>>>(d_out, d_in, length);
+	checkCudaError(
+		"kernel launch",
+		cudaGetLastError()
+	);
+	checkCudaError(
+		"kernel execution",
+		cudaDeviceSynchronize()
+	);
+
+	cudaMemcpy(output, d_out, arraySize, cudaMemcpyDeviceToHost);
+
+	cudaFree(d_out);
+	cudaFree(d_in);
+}
+
+void scanLargeArray(int *output, int *input, int length) {
+	const int numElementsPerBlock = 512;
+	const int blocks = length / numElementsPerBlock;
+	const int threadsPerBlock = numElementsPerBlock / 2;
+	const int arraySize = length * sizeof(int);
+
+	int *d_out, *d_in, *d_sums, *d_sums2, *d_incr;
+
+	cudaMalloc((void **)&d_out, arraySize);
+	cudaMalloc((void **)&d_in, arraySize);
+	cudaMalloc((void **)&d_sums, blocks * sizeof(int));
+	cudaMalloc((void **)&d_sums2, blocks * sizeof(int));
+	cudaMalloc((void **)&d_incr, blocks * sizeof(int));
+
+	cudaMemcpy(d_out, output, arraySize, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_in, input, arraySize, cudaMemcpyHostToDevice);
+
+
+	prescan_large<<<blocks, threadsPerBlock, arraySize>>>(d_out, d_in, numElementsPerBlock, d_sums);
+	checkCudaError(
+		"kernel launch",
+		cudaGetLastError()
+	);
+	checkCudaError(
+		"kernel execution",
+		cudaDeviceSynchronize()
+	);
+
+	prescan<<<1, blocks / 2, blocks * sizeof(int)>>>(d_incr, d_sums, blocks);
 	checkCudaError(
 		"kernel launch",
 		cudaGetLastError()
@@ -37,12 +96,21 @@ int main()
 	);
 
 
-	printArray(in, N, "input array");
-	printArray(out, N, "scanned array");
+	add<<<blocks, numElementsPerBlock>>>(d_out, d_incr, numElementsPerBlock);
+	checkCudaError(
+		"kernel launch",
+		cudaGetLastError()
+	);
+	checkCudaError(
+		"kernel execution",
+		cudaDeviceSynchronize()
+	);
 
-	cudaFree(in);
-	cudaFree(out);
-    return 0;
+	cudaMemcpy(output, d_out, arraySize, cudaMemcpyDeviceToHost);
+
+	cudaFree(d_out);
+	cudaFree(d_in);
+	cudaFree(d_sums);
 }
 
 void checkCudaError(char *message, cudaError_t err) {
