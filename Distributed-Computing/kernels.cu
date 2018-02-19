@@ -2,17 +2,8 @@
 #include "device_launch_parameters.h"
 #include <device_functions.h>
 
-#include "lib.cuh"
+#include "kernels.cuh"
 
-
-void sequential_scan(int* output, int* input, int length)
-{
-	output[0] = 0; // since this is a prescan, not a scan
-	for (int j = 1; j < length; ++j)
-	{
-		output[j] = input[j - 1] + output[j - 1];
-	}
-}
 
 __global__ void naive_scan(int *g_odata, int *g_idata, int n)
 {

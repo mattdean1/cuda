@@ -1,30 +1,17 @@
 
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
-#include "lib.cuh"
+#include "kernels.cuh"
+#include "helpers.h"
 
 
-void printArray(int* arr, int length, const char* prefix);
-bool isPowerOfTwo(int x);
-int nextPowerOfTwo(int x);
 void addConstant(int *output, int length, int constant);
 void scanSmallArray(int *output, int *input, int length);
 void scanLargeArray(int *output, int *input, int length);
 void scanSmallArbitraryArray(int *output, int *input, int length);
 void scanLargeArbitraryArray(int *output, int *input, int length);
-
-void _checkCudaError(const char *message, cudaError_t err, const char *caller) {
-	if (err != cudaSuccess) {
-		fprintf(stderr, "Error in: %s\n", caller);
-		fprintf(stderr, message);
-		fprintf(stderr, ": %s\n", cudaGetErrorString(err));
-		exit(0);
-	}
-}
 
 #define checkCudaError(o, l) _checkCudaError(o, l, __func__)
 
@@ -45,8 +32,8 @@ int main()
 	scanLargeArbitraryArray(outDevice, in, N);
 	sequential_scan(outHost, in, N);
 
-	printf("device: %i\n", outDevice[N - 1]);
-	printf("host: %i\n", outHost[N - 1]);
+	printResult("device", outDevice[N - 1]);
+	printResult("host", outHost[N - 1]);
 
 	//printArray(in, N, "input array");
 	//printArray(out, N, "scanned array");
@@ -207,23 +194,3 @@ void addConstant(int *output, int length, int constant) {
 
 
 
-void printArray(int* arr, int length, const char* prefix) {
-	printf(prefix);
-	printf(": {");
-	for (int i = 0; i < length; i++) {
-		printf(" %i", arr[i]);
-	}
-	printf(" }\n");
-}
-
-bool isPowerOfTwo(int x) {
-	return x && !(x & (x - 1));
-}
-
-int nextPowerOfTwo(int x) {
-	int power = 1;
-	while (power < x) {
-		power *= 2;
-	}
-	return power;
-}
