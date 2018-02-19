@@ -8,7 +8,7 @@
 #include "lib.cuh"
 
 
-void printArray(int* arr, int length, char* prefix);
+void printArray(int* arr, int length, const char* prefix);
 bool isPowerOfTwo(int x);
 int nextPowerOfTwo(int x);
 void addConstant(int *output, int length, int constant);
@@ -17,7 +17,7 @@ void scanLargeArray(int *output, int *input, int length);
 void scanSmallArbitraryArray(int *output, int *input, int length);
 void scanLargeArbitraryArray(int *output, int *input, int length);
 
-void _checkCudaError(char *message, cudaError_t err, const char *caller) {
+void _checkCudaError(const char *message, cudaError_t err, const char *caller) {
 	if (err != cudaSuccess) {
 		fprintf(stderr, "Error in: %s\n", caller);
 		fprintf(stderr, message);
@@ -32,24 +32,28 @@ int THREADS_PER_BLOCK = 512;
 
 int main()
 {
-	// allocate arrays
-    const int N = 10000;
+    const int N = 1000000;
 
-	int in[N];
-	int out[N] = { 0 };
+	int *in = new int[N];
+	int *outDevice = new int[N]();
+	int *outHost = new int[N]();
 
-	// populate arrays
 	for (int i = 0; i < N; i++) {
 		in[i] = rand()%10;
-		out[i] = 0;
 	}
 
-	scanLargeArbitraryArray(out, in, N);
+	scanLargeArbitraryArray(outDevice, in, N);
+	sequential_scan(outHost, in, N);
 
-	printArray(in, N, "input array");
-	printArray(out, N, "scanned array");
+	printf("device: %i\n", outDevice[N - 1]);
+	printf("host: %i\n", outHost[N - 1]);
 
+	//printArray(in, N, "input array");
+	//printArray(out, N, "scanned array");
 
+	delete[] in;
+	delete[] outDevice;
+	delete[] outHost;
 
     return 0;
 }
@@ -120,8 +124,8 @@ void scanLargeArray(int *output, int *input, int length) {
 	cudaMemcpy(d_out, output, arraySize, cudaMemcpyHostToDevice);
 	cudaMemcpy(d_in, input, arraySize, cudaMemcpyHostToDevice);
 
-
-	prescan_large<<<blocks, THREADS_PER_BLOCK, arraySize>>>(d_out, d_in, numElementsPerBlock, d_sums);
+	const int sharedArraySize = numElementsPerBlock * sizeof(int);
+	prescan_large<<<blocks, THREADS_PER_BLOCK, sharedArraySize>>>(d_out, d_in, numElementsPerBlock, d_sums);
 	checkCudaError(
 		"prescan_large kernel launch",
 		cudaGetLastError()
@@ -203,11 +207,9 @@ void addConstant(int *output, int length, int constant) {
 
 
 
-void printArray(int* arr, int length, char* prefix) {
-	char string[50] = "";
-	strcat(strcat(string, prefix), ": {");
-
-	printf(string);
+void printArray(int* arr, int length, const char* prefix) {
+	printf(prefix);
+	printf(": {");
 	for (int i = 0; i < length; i++) {
 		printf(" %i", arr[i]);
 	}
