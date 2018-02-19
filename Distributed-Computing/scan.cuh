@@ -1,3 +1,4 @@
+void blockscan(int *output, int *input, int length, bool bcao);
 void scan(int *output, int *input, int length);
 
 void scanLargeDeviceArray(int *output, int *input, int length);

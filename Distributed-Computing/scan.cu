@@ -12,6 +12,31 @@
 int THREADS_PER_BLOCK = 512;
 int ELEMENTS_PER_BLOCK = THREADS_PER_BLOCK * 2;
 
+void blockscan(int *output, int *input, int length, bool bcao){
+	int *d_out, *d_in;
+	const int arraySize = length * sizeof(int);
+
+	cudaMalloc((void **)&d_out, arraySize);
+	cudaMalloc((void **)&d_in, arraySize);
+	cudaMemcpy(d_out, output, arraySize, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_in, input, arraySize, cudaMemcpyHostToDevice);
+
+	prescan<<<1, length, 2 * arraySize>>>(d_out, d_in, length, bcao);
+	checkCudaError(
+		"kernel launch",
+		cudaGetLastError()
+	);
+	checkCudaError(
+		"kernel execution",
+		cudaDeviceSynchronize()
+	);
+
+	cudaMemcpy(output, d_out, arraySize, cudaMemcpyDeviceToHost);
+
+	cudaFree(d_out);
+	cudaFree(d_in);
+}
+
 
 void scan(int *output, int *input, int length) {
 	int *d_out, *d_in;

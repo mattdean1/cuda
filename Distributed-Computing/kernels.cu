@@ -4,6 +4,17 @@
 
 #include "kernels.cuh"
 
+#define SHARED_MEMORY_BANKS 32
+#define LOG_MEM_BANKS 5
+
+__device__ int CONFLICT_FREE_OFFSET(int n, bool bcao) {
+	if (bcao) {
+		return ((n) >> SHARED_MEMORY_BANKS + (n) >> (2 * LOG_MEM_BANKS));
+	}
+	else {
+		return ((n) >> LOG_MEM_BANKS);
+	}
+}
 
 __global__ void naive_scan(int *g_odata, int *g_idata, int n)
 {
@@ -24,13 +35,19 @@ __global__ void naive_scan(int *g_odata, int *g_idata, int n)
 	g_odata[k] = temp[k]; // write output
 }
 
-__global__ void prescan(int *g_odata, int *g_idata, int n)
-{
-	extern __shared__ int temp[];// allocated on invocation
+__global__ void prescan(int *output, int *input, int n, bool bcao) {
+	extern __shared__ int temp[];
+
 	int threadID = threadIdx.x;
 	int offset = 1;
-	temp[2 * threadID] = g_idata[2 * threadID]; // load input into shared memory
-	temp[2 * threadID + 1] = g_idata[2 * threadID + 1];
+
+	int ai = threadID;
+	int bi = threadID + (n / 2);
+	int bankOffsetA = CONFLICT_FREE_OFFSET(ai, bcao);
+	int bankOffsetB = CONFLICT_FREE_OFFSET(bi, bcao);
+	temp[ai + bankOffsetA] = input[ai];
+	temp[bi + bankOffsetB] = input[bi];
+
 	for (int d = n >> 1; d > 0; d >>= 1) // build sum in place up the tree
 	{
 		__syncthreads();
@@ -38,11 +55,18 @@ __global__ void prescan(int *g_odata, int *g_idata, int n)
 		{
 			int ai = offset * (2 * threadID + 1) - 1;
 			int bi = offset * (2 * threadID + 2) - 1;
+			ai += CONFLICT_FREE_OFFSET(ai, bcao);
+			bi += CONFLICT_FREE_OFFSET(bi, bcao);
+
 			temp[bi] += temp[ai];
 		}
 		offset *= 2;
 	}
-	if (threadID == 0) { temp[n - 1] = 0; } // clear the last element
+
+	if (threadID == 0) { 
+		temp[n - 1 + CONFLICT_FREE_OFFSET(n - 1, bcao)] = 0; // clear the last element
+	} 
+
 	for (int d = 1; d < n; d *= 2) // traverse down tree & build scan
 	{
 		offset >>= 1;
@@ -51,14 +75,18 @@ __global__ void prescan(int *g_odata, int *g_idata, int n)
 		{
 			int ai = offset * (2 * threadID + 1) - 1;
 			int bi = offset * (2 * threadID + 2) - 1;
+			ai += CONFLICT_FREE_OFFSET(ai, bcao);
+			bi += CONFLICT_FREE_OFFSET(bi, bcao);
+
 			int t = temp[ai];
 			temp[ai] = temp[bi];
 			temp[bi] += t;
 		}
 	}
 	__syncthreads();
-	g_odata[2 * threadID] = temp[2 * threadID]; // write results to device memory
-	g_odata[2 * threadID + 1] = temp[2 * threadID + 1];
+
+	output[ai] = temp[ai + bankOffsetA];
+	output[bi] = temp[bi + bankOffsetB];
 }
 
 __global__ void prescan_arbitrary(int *g_odata, int *g_idata, int n, int powerOfTwo)

@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <process.h>
+#include <time.h>
+
 #include "cuda_runtime.h"
 
 void _checkCudaError(const char *message, cudaError_t err, const char *caller) {
@@ -12,8 +14,9 @@ void _checkCudaError(const char *message, cudaError_t err, const char *caller) {
 }
 
 void printResult(const char* prefix, int number) {
+	printf("    ");
 	printf(prefix);
-	printf(": %i\n", number);
+	printf(" : %i\n", number);
 }
 
 void printArray(int* arr, int length, const char* prefix) {
@@ -23,6 +26,12 @@ void printArray(int* arr, int length, const char* prefix) {
 		printf(" %i", arr[i]);
 	}
 	printf(" }\n");
+}
+
+void printTimeElapsed(const char *prefix, long start, long end) {
+	printf("    ");
+	printf(prefix);
+	printf(" : %ld ms\n", ((end - start) / 1000));
 }
 
 
@@ -46,4 +55,10 @@ void sequential_scan(int* output, int* input, int length)
 	{
 		output[j] = input[j - 1] + output[j - 1];
 	}
+}
+
+long get_nanos() {
+	struct timespec ts;
+	timespec_get(&ts, TIME_UTC);
+	return (long)ts.tv_sec * 1000000000L + ts.tv_nsec;
 }
