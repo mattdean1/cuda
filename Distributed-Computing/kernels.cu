@@ -160,10 +160,18 @@ __global__ void prescan_large(int *output, int *input, int n, int *sums) {
 	output[blockOffset + (2 * threadID) + 1] = temp[2 * threadID + 1];
 }
 
-__global__ void add(int *output, int* addit, int n) {
+__global__ void add(int *output, int length, int *n) {
 	int blockID = blockIdx.x;
 	int threadID = threadIdx.x;
-	int blockOffset = blockID * n;
+	int blockOffset = blockID * length;
 
-	output[blockOffset + threadID] += addit[blockID];
+	output[blockOffset + threadID] += n[blockID];
+}
+
+__global__ void add(int *output, int length, int *n1, int *n2) {
+	int blockID = blockIdx.x;
+	int threadID = threadIdx.x;
+	int blockOffset = blockID * length;
+
+	output[blockOffset + threadID] += n1[blockID] + n2[blockID];
 }

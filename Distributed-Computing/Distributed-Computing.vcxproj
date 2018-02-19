@@ -92,9 +92,11 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
   <ItemGroup>
     <ClInclude Include="helpers.h" />
     <ClInclude Include="kernels.cuh" />
+    <ClInclude Include="scan.cuh" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="helpers.cpp" />
+    <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
