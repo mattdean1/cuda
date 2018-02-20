@@ -12,7 +12,7 @@
 int THREADS_PER_BLOCK = 512;
 int ELEMENTS_PER_BLOCK = THREADS_PER_BLOCK * 2;
 
-long blockscan(int *output, int *input, int length, bool bcao){
+float blockscan(int *output, int *input, int length, bool bcao){
 	int *d_out, *d_in;
 	const int arraySize = length * sizeof(int);
 
@@ -22,29 +22,33 @@ long blockscan(int *output, int *input, int length, bool bcao){
 	cudaMemcpy(d_in, input, arraySize, cudaMemcpyHostToDevice);
 
 	// start timer
-	long start = get_nanos();
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+	cudaEventRecord(start);
+
 	int powerOfTwo = nextPowerOfTwo(length);
-
-	prescan_arbitrary<<<1, (length + 1) / 2, 2 * powerOfTwo * sizeof(int) >>>(d_out, d_in, length, powerOfTwo, bcao);
-	checkCudaError(
-		"kernel launch",
-		cudaGetLastError()
-	);
-	checkCudaError(
-		"kernel execution",
-		cudaDeviceSynchronize()
-	);
-
+	if (bcao) {
+		prescan_arbitrary<<<1, (length + 1) / 2, 2 * powerOfTwo * sizeof(int)>>>(d_out, d_in, length, powerOfTwo);
+	}
+	else {
+		prescan_arbitrary_unoptimized<<<1, (length + 1) / 2, 2 * powerOfTwo * sizeof(int)>>>(d_out, d_in, length, powerOfTwo);
+	}
+	
 	// end timer
-	cudaDeviceSynchronize();
-	long end = get_nanos();
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	float elapsedTime = 0;
+	cudaEventElapsedTime(&elapsedTime, start, stop);
 
 	cudaMemcpy(output, d_out, arraySize, cudaMemcpyDeviceToHost);
 
 	cudaFree(d_out);
 	cudaFree(d_in);
+	cudaEventDestroy(start);
+	cudaEventDestroy(stop);
 
-	return end - start;
+	return elapsedTime;
 }
 
 
@@ -57,11 +61,10 @@ float scan(int *output, int *input, int length, bool bcao) {
 	cudaMemcpy(d_out, output, arraySize, cudaMemcpyHostToDevice);
 	cudaMemcpy(d_in, input, arraySize, cudaMemcpyHostToDevice);
 
+	// start timer
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
-
-	// start timer
 	cudaEventRecord(start);
 
 	if (length > ELEMENTS_PER_BLOCK) {
@@ -97,33 +100,22 @@ void scanLargeDeviceArray(int *d_out, int *d_in, int length, bool bcao) {
 		int lengthMultiple = length - remainder;
 		scanLargeEvenDeviceArray(d_out, d_in, lengthMultiple, bcao);
 
-		// scan the remaining elements and add the last element of the large scan to this
+		// scan the remaining elements and add the (inclusive) last element of the large scan to this
 		scanSmallDeviceArray(&(d_out[lengthMultiple]), &(d_in[lengthMultiple]), remainder, bcao);
 
 		add<<<1, remainder>>>(&(d_out[lengthMultiple]), remainder, &(d_in[lengthMultiple - 1]), &(d_out[lengthMultiple - 1]));
-		checkCudaError(
-			"kernel launch",
-			cudaGetLastError()
-		);
-		checkCudaError(
-			"kernel execution",
-			cudaDeviceSynchronize()
-		);
 	}
 }
 
 void scanSmallDeviceArray(int *d_out, int *d_in, int length, bool bcao) {
 	int powerOfTwo = nextPowerOfTwo(length);
 
-	prescan_arbitrary<<<1, (length + 1) / 2, 2 * powerOfTwo * sizeof(int)>>>(d_out, d_in, length, powerOfTwo, bcao);
-	checkCudaError(
-		"kernel launch",
-		cudaGetLastError()
-	);
-	checkCudaError(
-		"kernel execution",
-		cudaDeviceSynchronize()
-	);
+	if (bcao) {
+		prescan_arbitrary << <1, (length + 1) / 2, 2 * powerOfTwo * sizeof(int) >> >(d_out, d_in, length, powerOfTwo);
+	}
+	else {
+		prescan_arbitrary_unoptimized<< <1, (length + 1) / 2, 2 * powerOfTwo * sizeof(int) >> >(d_out, d_in, length, powerOfTwo);
+	}
 }
 
 void scanLargeEvenDeviceArray(int *d_out, int *d_in, int length, bool bcao) {
@@ -134,15 +126,12 @@ void scanLargeEvenDeviceArray(int *d_out, int *d_in, int length, bool bcao) {
 	cudaMalloc((void **)&d_sums, blocks * sizeof(int));
 	cudaMalloc((void **)&d_incr, blocks * sizeof(int));
 
-	prescan_large<<<blocks, THREADS_PER_BLOCK, 2 * sharedMemArraySize>>>(d_out, d_in, ELEMENTS_PER_BLOCK, d_sums, bcao);
-	checkCudaError(
-		"prescan_large kernel launch",
-		cudaGetLastError()
-	);
-	checkCudaError(
-		"prescan_large kernel execution",
-		cudaDeviceSynchronize()
-	);
+	if (bcao) {
+		prescan_large<<<blocks, THREADS_PER_BLOCK, 2 * sharedMemArraySize>>>(d_out, d_in, ELEMENTS_PER_BLOCK, d_sums);
+	}
+	else {
+		prescan_large_unoptimized<<<blocks, THREADS_PER_BLOCK, 2 * sharedMemArraySize>>>(d_out, d_in, ELEMENTS_PER_BLOCK, d_sums);
+	}
 
 	const int sumsArrThreadsNeeded = (blocks + 1) / 2;
 	if (sumsArrThreadsNeeded > THREADS_PER_BLOCK) {
@@ -155,14 +144,6 @@ void scanLargeEvenDeviceArray(int *d_out, int *d_in, int length, bool bcao) {
 	}
 
 	add<<<blocks, ELEMENTS_PER_BLOCK>>>(d_out, ELEMENTS_PER_BLOCK, d_incr);
-	checkCudaError(
-		"add kernel launch",
-		cudaGetLastError()
-	);
-	checkCudaError(
-		"add kernel execution",
-		cudaDeviceSynchronize()
-	);
 
 	cudaFree(d_sums);
 	cudaFree(d_incr);
