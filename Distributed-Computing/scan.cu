@@ -48,7 +48,7 @@ long blockscan(int *output, int *input, int length, bool bcao){
 }
 
 
-long scan(int *output, int *input, int length, bool bcao) {
+float scan(int *output, int *input, int length, bool bcao) {
 	int *d_out, *d_in;
 	const int arraySize = length * sizeof(int);
 
@@ -57,8 +57,12 @@ long scan(int *output, int *input, int length, bool bcao) {
 	cudaMemcpy(d_out, output, arraySize, cudaMemcpyHostToDevice);
 	cudaMemcpy(d_in, input, arraySize, cudaMemcpyHostToDevice);
 
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+
 	// start timer
-	long start = get_nanos();
+	cudaEventRecord(start);
 
 	if (length > ELEMENTS_PER_BLOCK) {
 		scanLargeDeviceArray(d_out, d_in, length, bcao);
@@ -68,15 +72,19 @@ long scan(int *output, int *input, int length, bool bcao) {
 	}
 
 	// end timer
-	cudaDeviceSynchronize();
-	long end = get_nanos();
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	float elapsedTime = 0;
+	cudaEventElapsedTime(&elapsedTime, start, stop);
 
 	cudaMemcpy(output, d_out, arraySize, cudaMemcpyDeviceToHost);
 
 	cudaFree(d_out);
 	cudaFree(d_in);
+	cudaEventDestroy(start);
+	cudaEventDestroy(stop);
 
-	return end - start;
+	return elapsedTime;
 }
 
 void scanLargeDeviceArray(int *d_out, int *d_in, int length, bool bcao) {

@@ -8,9 +8,10 @@
 
 void test(int N) {
 	bool canBeBlockscanned = N <= 1024;
-	int *in = new int[N];
+
 	time_t t;
 	srand((unsigned)time(&t));
+	int *in = new int[N];
 	for (int i = 0; i < N; i++) {
 		in[i] = rand() % 10;
 	}
@@ -26,23 +27,23 @@ void test(int N) {
 
 		// full scan
 		int *outGPU = new int[N]();
-		long time_gpu = scan(outGPU, in, N, false);
+		float time_gpu = scan(outGPU, in, N, false);
 		printResult("gpu     ", outGPU[N - 1], time_gpu);
 	
 		// full scan with BCAO
 		int *outGPU_bcao = new int[N]();
-		long time_gpu_bcao = scan(outGPU_bcao, in, N, true);
+		float time_gpu_bcao = scan(outGPU_bcao, in, N, true);
 		printResult("gpu bcao", outGPU_bcao[N - 1], time_gpu_bcao);
 
 		if (canBeBlockscanned) {
 			// basic level 1 block scan
 			int *out_1block = new int[N]();
-			long time_1block = blockscan(out_1block, in, N, false);
+			float time_1block = blockscan(out_1block, in, N, false);
 			printResult("level 1 ", out_1block[N - 1], time_1block);
 
 			// level 1 block scan with BCAO
 			int *out_1block_bcao = new int[N]();
-			long time_1block_bcao = blockscan(out_1block_bcao, in, N, true);
+			float time_1block_bcao = blockscan(out_1block_bcao, in, N, true);
 			printResult("l1 bcao ", out_1block_bcao[N - 1], time_1block_bcao);
 
 			delete[] out_1block;
