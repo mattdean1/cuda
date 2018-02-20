@@ -1,4 +1,3 @@
-
 #include <stdlib.h>
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
@@ -11,6 +10,19 @@
 
 int THREADS_PER_BLOCK = 512;
 int ELEMENTS_PER_BLOCK = THREADS_PER_BLOCK * 2;
+
+long sequential_scan(int* output, int* input, int length) {
+	long start_time = get_nanos();
+
+	output[0] = 0; // since this is a prescan, not a scan
+	for (int j = 1; j < length; ++j)
+	{
+		output[j] = input[j - 1] + output[j - 1];
+	}
+
+	long end_time = get_nanos();
+	return end_time - start_time;
+}
 
 float blockscan(int *output, int *input, int length, bool bcao){
 	int *d_out, *d_in;
@@ -51,7 +63,6 @@ float blockscan(int *output, int *input, int length, bool bcao){
 	return elapsedTime;
 }
 
-
 float scan(int *output, int *input, int length, bool bcao) {
 	int *d_out, *d_in;
 	const int arraySize = length * sizeof(int);
@@ -89,6 +100,7 @@ float scan(int *output, int *input, int length, bool bcao) {
 
 	return elapsedTime;
 }
+
 
 void scanLargeDeviceArray(int *d_out, int *d_in, int length, bool bcao) {
 	int remainder = length % (ELEMENTS_PER_BLOCK);

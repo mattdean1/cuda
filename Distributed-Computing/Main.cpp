@@ -20,10 +20,8 @@ void test(int N) {
 
 		// sequential scan on CPU
 		int *outHost = new int[N]();
-		long start_host = get_nanos();
-			sequential_scan(outHost, in, N);
-		long end_host = get_nanos();
-		printResult("host    ", outHost[N - 1], end_host - start_host);
+		long time_host = sequential_scan(outHost, in, N);
+		printResult("host    ", outHost[N - 1], time_host);
 
 		// full scan
 		int *outGPU = new int[N]();
@@ -50,7 +48,7 @@ void test(int N) {
 			delete[] out_1block_bcao;
 		}
 
-	printf("\n\n");
+	printf("\n");
 
 	delete[] in;
 	delete[] outHost;

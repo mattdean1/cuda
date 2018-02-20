@@ -7,6 +7,4 @@ void printResult(const char* prefix, int result, float milliseconds);
 bool isPowerOfTwo(int x);
 int nextPowerOfTwo(int x);
 
-void sequential_scan(int* output, int* input, int length);
-
 long get_nanos();

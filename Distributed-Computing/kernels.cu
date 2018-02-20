@@ -123,6 +123,7 @@ __global__ void prescan_arbitrary_unoptimized(int *output, int *input, int n, in
 	}
 }
 
+
 __global__ void prescan_large(int *output, int *input, int n, int *sums) {
 	extern __shared__ int temp[];
 
@@ -229,6 +230,7 @@ __global__ void prescan_large_unoptimized(int *output, int *input, int n, int *s
 	output[blockOffset + (2 * threadID)] = temp[2 * threadID];
 	output[blockOffset + (2 * threadID) + 1] = temp[2 * threadID + 1];
 }
+
 
 __global__ void add(int *output, int length, int *n) {
 	int blockID = blockIdx.x;

@@ -1,3 +1,4 @@
+long sequential_scan(int* output, int* input, int length);
 float blockscan(int *output, int *input, int length, bool bcao);
 float scan(int *output, int *input, int length, bool bcao);
 

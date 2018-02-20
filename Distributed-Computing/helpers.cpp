@@ -38,16 +38,7 @@ int nextPowerOfTwo(int x) {
 	return power;
 }
 
-
-void sequential_scan(int* output, int* input, int length)
-{
-	output[0] = 0; // since this is a prescan, not a scan
-	for (int j = 1; j < length; ++j)
-	{
-		output[j] = input[j - 1] + output[j - 1];
-	}
-}
-
+// from https://stackoverflow.com/a/36095407
 long get_nanos() {
 	struct timespec ts;
 	timespec_get(&ts, TIME_UTC);
