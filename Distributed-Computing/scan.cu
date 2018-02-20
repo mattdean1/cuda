@@ -113,9 +113,10 @@ void scanLargeDeviceArray(int *d_out, int *d_in, int length, bool bcao) {
 		scanLargeEvenDeviceArray(d_out, d_in, lengthMultiple, bcao);
 
 		// scan the remaining elements and add the (inclusive) last element of the large scan to this
-		scanSmallDeviceArray(&(d_out[lengthMultiple]), &(d_in[lengthMultiple]), remainder, bcao);
+		int *startOfOutputArray = &(d_out[lengthMultiple]);
+		scanSmallDeviceArray(startOfOutputArray, &(d_in[lengthMultiple]), remainder, bcao);
 
-		add<<<1, remainder>>>(&(d_out[lengthMultiple]), remainder, &(d_in[lengthMultiple - 1]), &(d_out[lengthMultiple - 1]));
+		add<<<1, remainder>>>(startOfOutputArray, remainder, &(d_in[lengthMultiple - 1]), &(d_out[lengthMultiple - 1]));
 	}
 }
 
