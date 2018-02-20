@@ -7,75 +7,54 @@
 #include "helpers.h"
 
 void test(int N) {
+	bool canBeBlockscanned = N <= 1024;
 	int *in = new int[N];
-	int *outDevice = new int[N]();
-	int *outHost = new int[N]();
-
+	time_t t;
+	srand((unsigned)time(&t));
 	for (int i = 0; i < N; i++) {
 		in[i] = rand() % 10;
 	}
-
-	scan(outDevice, in, N);
-	sequential_scan(outHost, in, N);
-
-	printResult("input length", N);
-	printResult("device", outDevice[N - 1]);
-	printResult("host  ", outHost[N - 1]);
-	printf("\n");
-
-	delete[] in;
-	delete[] outDevice;
-	delete[] outHost;
-}
-
-
-
-
-void test_blockscan(int N) {
-	int *outDevice = new int[N]();
-	int *outDeviceBcao = new int[N]();
-	int *outHost = new int[N]();
-
-	int *in = new int[N];
-	for (int i = 0; i < N; i++) {
-		in[i] = rand() % 10;
-	}
-
-	// dummy call to "warm up" the GPU
-	blockscan(outDevice, in, N, false);
-
-
-	long start = get_nanos();
-	blockscan(outDevice, in, N, false);
-	long end = get_nanos();
-
-	long start_bcao = get_nanos();
-	blockscan(outDeviceBcao, in, N, true);
-	long end_bcao = get_nanos();
-	
-	long start_host = get_nanos();
-	sequential_scan(outHost, in, N);
-	long end_host = get_nanos();
-
 
 	printf("%i Elements \n", N);
 
-	printf("  Results: \n");
-	printResult("host  ", outHost[N - 1]);
-	printResult("device", outDevice[N - 1]);
-	printResult("bcao", outDeviceBcao[N - 1]);
+		// sequential scan on CPU
+		int *outHost = new int[N]();
+		long start_host = get_nanos();
+			sequential_scan(outHost, in, N);
+		long end_host = get_nanos();
+		printResult("host    ", outHost[N - 1], end_host - start_host);
+
+		// full scan
+		int *outGPU = new int[N]();
+		long time_gpu = scan(outGPU, in, N, false);
+		printResult("gpu     ", outGPU[N - 1], time_gpu);
 	
-	printf("  Time: \n");
-	printTimeElapsed("host  ", start_host, end_host);
-	printTimeElapsed("device", start, end);
-	printTimeElapsed("bcao  ", start_bcao, end_bcao);
+		// full scan with BCAO
+		int *outGPU_bcao = new int[N]();
+		long time_gpu_bcao = scan(outGPU_bcao, in, N, true);
+		printResult("gpu bcao", outGPU_bcao[N - 1], time_gpu_bcao);
+
+		if (canBeBlockscanned) {
+			// basic level 1 block scan
+			int *out_1block = new int[N]();
+			long time_1block = blockscan(out_1block, in, N, false);
+			printResult("level 1 ", out_1block[N - 1], time_1block);
+
+			// level 1 block scan with BCAO
+			int *out_1block_bcao = new int[N]();
+			long time_1block_bcao = blockscan(out_1block_bcao, in, N, true);
+			printResult("l1 bcao ", out_1block_bcao[N - 1], time_1block_bcao);
+
+			delete[] out_1block;
+			delete[] out_1block_bcao;
+		}
 
 	printf("\n\n");
 
-
 	delete[] in;
-	delete[] outDevice;
 	delete[] outHost;
+	delete[] outGPU;
+	delete[] outGPU_bcao;
 }
 
 int main()
@@ -85,6 +64,7 @@ int main()
 	int TEN_THOUSAND = 10000;
 
 	int elements[] = {
+		TEN_MILLION * 2,
 		TEN_MILLION,
 		ONE_MILLION,
 		TEN_THOUSAND,
@@ -102,13 +82,8 @@ int main()
 	int numElements = sizeof(elements) / sizeof(elements[0]);
 
 	for (int i = 0; i < numElements; i++) {
-		//test(elements[i]);
+		test(elements[i]);
 	}
-
-	test_blockscan(1024);
-	test_blockscan(512);
-	test_blockscan(64);
-	test_blockscan(8);
 
 	return 0;
 }

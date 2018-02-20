@@ -89,18 +89,24 @@ __global__ void prescan(int *output, int *input, int n, bool bcao) {
 	output[bi] = temp[bi + bankOffsetB];
 }
 
-__global__ void prescan_arbitrary(int *g_odata, int *g_idata, int n, int powerOfTwo)
+__global__ void prescan_arbitrary(int *output, int *input, int n, int powerOfTwo, bool bcao)
 {
 	extern __shared__ int temp[];// allocated on invocation
 	int threadID = threadIdx.x;
 
+	int ai = threadID;
+	int bi = threadID + (n / 2);
+	int bankOffsetA = CONFLICT_FREE_OFFSET(ai, bcao);
+	int bankOffsetB = CONFLICT_FREE_OFFSET(bi, bcao);
+
+	
 	if (threadID < n) {
-		temp[2 * threadID] = g_idata[2 * threadID]; // load input into shared memory
-		temp[2 * threadID + 1] = g_idata[2 * threadID + 1];
+		temp[ai + bankOffsetA] = input[ai];
+		temp[bi + bankOffsetB] = input[bi];
 	}
 	else {
-		temp[2 * threadID] = 0;
-		temp[2 * threadID + 1] = 0;
+		temp[ai + bankOffsetA] = 0;
+		temp[bi + bankOffsetB] = 0;
 	}
 	
 
@@ -112,12 +118,17 @@ __global__ void prescan_arbitrary(int *g_odata, int *g_idata, int n, int powerOf
 		{
 			int ai = offset * (2 * threadID + 1) - 1;
 			int bi = offset * (2 * threadID + 2) - 1;
+			ai += CONFLICT_FREE_OFFSET(ai, bcao);
+			bi += CONFLICT_FREE_OFFSET(bi, bcao);
+
 			temp[bi] += temp[ai];
 		}
 		offset *= 2;
 	}
 
-	if (threadID == 0) { temp[powerOfTwo - 1] = 0; } // clear the last element
+	if (threadID == 0) {
+		temp[powerOfTwo - 1 + CONFLICT_FREE_OFFSET(powerOfTwo - 1, bcao)] = 0; // clear the last element
+	}
 
 	for (int d = 1; d < powerOfTwo; d *= 2) // traverse down tree & build scan
 	{
@@ -127,6 +138,9 @@ __global__ void prescan_arbitrary(int *g_odata, int *g_idata, int n, int powerOf
 		{
 			int ai = offset * (2 * threadID + 1) - 1;
 			int bi = offset * (2 * threadID + 2) - 1;
+			ai += CONFLICT_FREE_OFFSET(ai, bcao);
+			bi += CONFLICT_FREE_OFFSET(bi, bcao);
+
 			int t = temp[ai];
 			temp[ai] = temp[bi];
 			temp[bi] += t;
@@ -135,19 +149,24 @@ __global__ void prescan_arbitrary(int *g_odata, int *g_idata, int n, int powerOf
 	__syncthreads();
 
 	if (threadID < n) {
-		g_odata[2 * threadID] = temp[2 * threadID]; // write results to device memory
-		g_odata[2 * threadID + 1] = temp[2 * threadID + 1];
+		output[ai] = temp[ai + bankOffsetA];
+		output[bi] = temp[bi + bankOffsetB];
 	}
 }
 
-__global__ void prescan_large(int *output, int *input, int n, int *sums) {
+__global__ void prescan_large(int *output, int *input, int n, int *sums, bool bcao) {
+	extern __shared__ int temp[];
+
 	int blockID = blockIdx.x;
 	int threadID = threadIdx.x;
 	int blockOffset = blockID * n;
 	
-	extern __shared__ int temp[];
-	temp[2 * threadID] = input[blockOffset + (2 * threadID)];
-	temp[2 * threadID + 1] = input[blockOffset + (2 * threadID) + 1];
+	int ai = threadID;
+	int bi = threadID + (n / 2);
+	int bankOffsetA = CONFLICT_FREE_OFFSET(ai, bcao);
+	int bankOffsetB = CONFLICT_FREE_OFFSET(bi, bcao);
+	temp[ai + bankOffsetA] = input[blockOffset + ai];
+	temp[bi + bankOffsetB] = input[blockOffset + bi];
 
 	int offset = 1;
 	for (int d = n >> 1; d > 0; d >>= 1) // build sum in place up the tree
@@ -157,16 +176,19 @@ __global__ void prescan_large(int *output, int *input, int n, int *sums) {
 		{
 			int ai = offset * (2 * threadID + 1) - 1;
 			int bi = offset * (2 * threadID + 2) - 1;
+			ai += CONFLICT_FREE_OFFSET(ai, bcao);
+			bi += CONFLICT_FREE_OFFSET(bi, bcao);
+
 			temp[bi] += temp[ai];
 		}
 		offset *= 2;
 	}
 	__syncthreads();
 
-	
+
 	if (threadID == 0) { 
-		sums[blockID] = temp[n - 1];
-		temp[n - 1] = 0;
+		sums[blockID] = temp[n - 1 + CONFLICT_FREE_OFFSET(n - 1, bcao)];
+		temp[n - 1 + CONFLICT_FREE_OFFSET(n - 1, bcao)] = 0;
 	} 
 	
 	for (int d = 1; d < n; d *= 2) // traverse down tree & build scan
@@ -177,6 +199,9 @@ __global__ void prescan_large(int *output, int *input, int n, int *sums) {
 		{
 			int ai = offset * (2 * threadID + 1) - 1;
 			int bi = offset * (2 * threadID + 2) - 1;
+			ai += CONFLICT_FREE_OFFSET(ai, bcao);
+			bi += CONFLICT_FREE_OFFSET(bi, bcao);
+
 			int t = temp[ai];
 			temp[ai] = temp[bi];
 			temp[bi] += t;
@@ -184,8 +209,8 @@ __global__ void prescan_large(int *output, int *input, int n, int *sums) {
 	}
 	__syncthreads();
 
-	output[blockOffset + (2 * threadID)] = temp[2 * threadID];
-	output[blockOffset + (2 * threadID) + 1] = temp[2 * threadID + 1];
+	output[blockOffset + ai] = temp[ai + bankOffsetA];
+	output[blockOffset + bi] = temp[bi + bankOffsetB];
 }
 
 __global__ void add(int *output, int length, int *n) {

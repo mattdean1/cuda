@@ -13,25 +13,10 @@ void _checkCudaError(const char *message, cudaError_t err, const char *caller) {
 	}
 }
 
-void printResult(const char* prefix, int number) {
+void printResult(const char* prefix, int result, long time) {
 	printf("    ");
 	printf(prefix);
-	printf(" : %i\n", number);
-}
-
-void printArray(int* arr, int length, const char* prefix) {
-	printf(prefix);
-	printf(": {");
-	for (int i = 0; i < length; i++) {
-		printf(" %i", arr[i]);
-	}
-	printf(" }\n");
-}
-
-void printTimeElapsed(const char *prefix, long start, long end) {
-	printf("    ");
-	printf(prefix);
-	printf(" : %ld ms\n", ((end - start) / 1000));
+	printf(" : %i in %ld ms \n", result, time / 1000);
 }
 
 
