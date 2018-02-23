@@ -87,17 +87,18 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CudaCompile Include="scan.cu" />
     <CudaCompile Include="kernels.cu" />
+    <CudaCompile Include="scan.cu" />
+    <CudaCompile Include="Submission.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="helpers.cpp" />
+    <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="helpers.h" />
     <ClInclude Include="kernels.cuh" />
     <ClInclude Include="scan.cuh" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="helpers.cpp" />
-    <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
