@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2027
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Distributed-Computing", "Distributed-Computing\Distributed-Computing.vcxproj", "{50B2B8D0-75A7-426F-8F4C-FCA7A4D38CEB}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "parallel-scan", "parallel-scan\parallel-scan.vcxproj", "{50B2B8D0-75A7-426F-8F4C-FCA7A4D38CEB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

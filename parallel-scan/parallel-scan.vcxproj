@@ -14,6 +14,7 @@
     <ProjectGuid>{50B2B8D0-75A7-426F-8F4C-FCA7A4D38CEB}</ProjectGuid>
     <RootNamespace>Distributed_Computing</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+    <ProjectName>parallel-scan</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
