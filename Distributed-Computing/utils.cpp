@@ -4,6 +4,8 @@
 
 #include "cuda_runtime.h"
 
+#include "utils.h"
+
 void _checkCudaError(const char *message, cudaError_t err, const char *caller) {
 	if (err != cudaSuccess) {
 		fprintf(stderr, "Error in: %s\n", caller);

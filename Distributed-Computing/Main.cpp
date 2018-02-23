@@ -4,7 +4,7 @@
 #include <time.h>
 
 #include "scan.cuh"
-#include "helpers.h"
+#include "utils.h"
 
 void test(int N) {
 	bool canBeBlockscanned = N <= 1024;

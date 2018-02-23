@@ -3,7 +3,7 @@
 #include "device_launch_parameters.h"
 
 #include "kernels.cuh"
-#include "helpers.h"
+#include "utils.h"
 #include "scan.cuh"
 
 #define checkCudaError(o, l) _checkCudaError(o, l, __func__)

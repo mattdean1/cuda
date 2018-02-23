@@ -92,11 +92,11 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <CudaCompile Include="Submission.cu" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="helpers.cpp" />
+    <ClCompile Include="utils.cpp" />
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="helpers.h" />
+    <ClInclude Include="utils.h" />
     <ClInclude Include="kernels.cuh" />
     <ClInclude Include="scan.cuh" />
   </ItemGroup>
