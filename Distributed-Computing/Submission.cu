@@ -13,9 +13,9 @@
 
 	Timings:
 		10,000,000 Elements
-			host     : 25973 ms
-			gpu      : 46.823746 ms
-			gpu bcao : 44.182655 ms
+		  host     : 20749 ms
+		  gpu      : 7.860768 ms
+		  gpu bcao : 4.304064 ms
 		
 		For more results please see the comment at the bottom of this file
 
@@ -621,84 +621,84 @@ long get_nanos() {
 	The number before the time is the final element of the scanned array
 
 	20000000 Elements
-	host     : 89995265 in 52079 ms
-	gpu      : 89995265 in 92.394371 ms
-	gpu bcao : 89995265 in 84.694466 ms
+	  host     : 89997032 in 42338 ms
+	  gpu      : 89997032 in 16.285631 ms
+	  gpu bcao : 89997032 in 8.554880 ms
 
 	10000000 Elements
-	host     : 44997073 in 25973 ms
-	gpu      : 44997073 in 46.823746 ms
-	gpu bcao : 44997073 in 44.182655 ms
+	  host     : 44983528 in 20749 ms
+	  gpu      : 44983528 in 7.860768 ms
+	  gpu bcao : 44983528 in 4.304064 ms
 
 	1000000 Elements
-	host     : 4497865 in 2533 ms
-	gpu      : 4497865 in 5.183392 ms
-	gpu bcao : 4497865 in 4.818912 ms
+	  host     : 4494474 in 2105 ms
+	  gpu      : 4494474 in 0.975648 ms
+	  gpu bcao : 4494474 in 0.600416 ms
 
 	10000 Elements
-	host     : 44875 in 23 ms
-	gpu      : 44875 in 0.475136 ms
-	gpu bcao : 44875 in 0.447200 ms
+	  host     : 45078 in 19 ms
+	  gpu      : 45078 in 0.213760 ms
+	  gpu bcao : 45078 in 0.192128 ms
 
 	5000 Elements
-	host     : 22543 in 11 ms
-	gpu      : 22543 in 0.471552 ms
-	gpu bcao : 22543 in 0.437184 ms
+	  host     : 22489 in 11 ms
+	  gpu      : 22489 in 0.169312 ms
+	  gpu bcao : 22489 in 0.148832 ms
 
 	4096 Elements
-	host     : 18407 in 9 ms
-	gpu      : 18407 in 0.268160 ms
-	gpu bcao : 18407 in 0.245760 ms
+	  host     : 18294 in 9 ms
+	  gpu      : 18294 in 0.132672 ms
+	  gpu bcao : 18294 in 0.128480 ms
 
 	2048 Elements
-	host     : 9273 in 5 ms
-	gpu      : 9273 in 0.253024 ms
-	gpu bcao : 9273 in 0.268864 ms
+	  host     : 9149 in 4 ms
+	  gpu      : 9149 in 0.140736 ms
+	  gpu bcao : 9149 in 0.126944 ms
 
 	2000 Elements
-	host     : 9053 in 4 ms
-	gpu      : 9053 in 0.385120 ms
-	gpu bcao : 9053 in 0.360608 ms
+	  host     : 8958 in 3 ms
+	  gpu      : 8958 in 0.178912 ms
+	  gpu bcao : 8958 in 0.214464 ms
 
 	1000 Elements
-	host     : 4564 in 2 ms
-	gpu      : 4564 in 0.109088 ms
-	gpu bcao : 4564 in 0.100544 ms
-	level 1  : 4564 in 0.108864 ms
-	l1 bcao  : 4564 in 0.100992 ms
+	  host     : 4483 in 2 ms
+	  gpu      : 4483 in 0.020128 ms
+	  gpu bcao : 4483 in 0.010784 ms
+	  level 1  : 4483 in 0.018080 ms
+	  l1 bcao  : 4483 in 0.010400 ms
 
 	500 Elements
-	host     : 2289 in 1 ms
-	gpu      : 2289 in 0.094080 ms
-	gpu bcao : 2289 in 0.092480 ms
-	level 1  : 2289 in 0.093856 ms
-	l1 bcao  : 2289 in 0.094336 ms
+	  host     : 2203 in 4 ms
+	  gpu      : 2203 in 0.013440 ms
+	  gpu bcao : 2203 in 0.009664 ms
+	  level 1  : 2203 in 0.013280 ms
+	  l1 bcao  : 2203 in 0.010176 ms
 
 	100 Elements
-	host     : 446 in 0 ms
-	gpu      : 446 in 0.073472 ms
-	gpu bcao : 446 in 0.075712 ms
-	level 1  : 446 in 0.072992 ms
-	l1 bcao  : 446 in 0.075456 ms
+	  host     : 356 in 0 ms
+	  gpu      : 356 in 0.008512 ms
+	  gpu bcao : 356 in 0.009280 ms
+	  level 1  : 356 in 0.008896 ms
+	  l1 bcao  : 356 in 0.009056 ms
 
 	64 Elements
-	host     : 277 in 0 ms
-	gpu      : 277 in 0.063872 ms
-	gpu bcao : 277 in 0.069056 ms
-	level 1  : 277 in 0.064096 ms
-	l1 bcao  : 277 in 0.067136 ms
+	  host     : 221 in 0 ms
+	  gpu      : 221 in 0.007584 ms
+	  gpu bcao : 221 in 0.008960 ms
+	  level 1  : 221 in 0.007360 ms
+	  l1 bcao  : 221 in 0.008352 ms
 
 	8 Elements
-	host     : 28 in 0 ms
-	gpu      : 28 in 0.039968 ms
-	gpu bcao : 28 in 0.042304 ms
-	level 1  : 28 in 0.041376 ms
-	l1 bcao  : 28 in 0.042400 ms
+	  host     : 24 in 0 ms
+	  gpu      : 24 in 0.006240 ms
+	  gpu bcao : 24 in 0.007392 ms
+	  level 1  : 24 in 0.006176 ms
+	  l1 bcao  : 24 in 0.007424 ms
 
 	5 Elements
-	host     : 16 in 0 ms
-	gpu      : 16 in 0.040096 ms
-	gpu bcao : 16 in 0.042592 ms
-	level 1  : 16 in 0.041376 ms
-	l1 bcao  : 16 in 0.042528 ms
+	  host     : 12 in 0 ms
+	  gpu      : 12 in 0.006144 ms
+	  gpu bcao : 12 in 0.007296 ms
+	  level 1  : 12 in 0.006048 ms
+	  l1 bcao  : 12 in 0.007328 ms
 */
