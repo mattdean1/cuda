@@ -26,10 +26,12 @@ void printResult(const char* prefix, int result, float milliseconds) {
 }
 
 
+// from https://stackoverflow.com/a/3638454
 bool isPowerOfTwo(int x) {
 	return x && !(x & (x - 1));
 }
 
+// from https://stackoverflow.com/a/12506181
 int nextPowerOfTwo(int x) {
 	int power = 1;
 	while (power < x) {
@@ -37,6 +39,7 @@ int nextPowerOfTwo(int x) {
 	}
 	return power;
 }
+
 
 // from https://stackoverflow.com/a/36095407
 long get_nanos() {
